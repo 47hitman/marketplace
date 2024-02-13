@@ -3,31 +3,25 @@ import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-Future<void> handleBackgroundMessage(RemoteMessage message) async {
-  print('Title : ${message.notification?.title}');
-  print('Body : ${message.notification?.body}');
-  print('Payload : ${message.data}');
-}
-
 class FirebaseApi {
-  final _firebaseMessaging = FirebaseMessaging.instance;
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  final AndroidNotificationChannel _androidChannel =
+      const AndroidNotificationChannel(
+    'high_importance_channel',
+    'High Importance Notification',
+    description: 'This channel is used for important notifications',
+    importance: Importance.defaultImportance,
+  );
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
 
-  final _androidChannel = const AndroidNotificationChannel(
-      'high_importance_channel', 'High Importance Notification',
-      description: 'This channel is used for important notification',
-      importance: Importance.defaultImportance);
-  final _localNotifications = FlutterLocalNotificationsPlugin();
-
-  void handleMessage(RemoteMessage? message) {
-    if (message == null) return;
-    print(message);
-    // navigatorKey.currentState?.pushNamed(
-    //   NotificationScreen.route,
-    //   arguments: message,
-    // );
+  Future<void> handleBackgroundMessage(RemoteMessage message) async {
+    print('Title: ${message.notification?.title}');
+    print('Body: ${message.notification?.body}');
+    print('Payload: ${message.data}');
   }
 
-  Future initLocalNotifications() async {
+  Future<void> initLocalNotifications() async {
     const iOS = IOSInitializationSettings();
     const android = AndroidInitializationSettings('@drawable/ic_launcher');
     const settings = InitializationSettings(android: android, iOS: iOS);
@@ -43,19 +37,22 @@ class FirebaseApi {
     await platform?.createNotificationChannel(_androidChannel);
   }
 
-  Future initPushNotifications() async {
+  Future<void> initPushNotifications() async {
     await FirebaseMessaging.instance
         .setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
       sound: true,
     );
+
     FirebaseMessaging.instance.getInitialMessage().then(handleMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(handleMessage);
     FirebaseMessaging.onBackgroundMessage(handleBackgroundMessage);
+
     FirebaseMessaging.onMessage.listen((message) {
       final notification = message.notification;
       if (notification == null) return;
+
       _localNotifications.show(
         notification.hashCode,
         notification.title,
@@ -77,9 +74,17 @@ class FirebaseApi {
     await _firebaseMessaging.requestPermission();
     final fCMToken = await _firebaseMessaging.getToken();
     print('Token: $fCMToken');
+
     initPushNotifications();
     initLocalNotifications();
-    // FirebaseMessaging.onBackgroundMessage(handleBackgroundMessage);
-    // initNotifications();
+  }
+
+  void handleMessage(RemoteMessage? message) {
+    if (message == null) return;
+    print(message);
+    // navigatorKey.currentState?.pushNamed(
+    //   NotificationScreen.route,
+    //   arguments: message,
+    // );
   }
 }
